@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
-
+	_ "github.com/lib/pq"
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 type CreateBookingDto struct {
