@@ -21,7 +21,7 @@ func main() {
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{})
 	})
-	router.POST("/book")
+	router.POST("/book", createBooking)
 
 	router.Run("localhost:8080")
 }
@@ -55,4 +55,18 @@ func getBookings(c *gin.Context) {
 	}
 
 	c.IndentedJSON(200, bookings)
+}
+
+func createBooking(c *gin.Context) {
+	var dto Repositories.CreateBookingDto
+	c.BindJSON(&dto)
+	err := Repositories.CreateBooking(&dto)
+	if err != nil {
+		if err.Error() == "err_exists" {
+			c.AbortWithStatus(409)
+		} else {
+			c.AbortWithStatus(500)
+		}
+	}
+	c.JSON(200, gin.H{})
 }

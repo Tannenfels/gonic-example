@@ -3,7 +3,9 @@ package Repositories
 import (
 	"9263-solution/Models"
 	"database/sql"
+	"errors"
 	"fmt"
+	"time"
 
 	"log"
 	"os"
@@ -11,16 +13,16 @@ import (
 )
 
 type CreateBookingDto struct {
-	PlaceId string
-	UserId  string
-	From    string
-	To      string
+	PlaceId string `json:"place_id"`
+	UserId  string `json:"user_id"`
+	From    string `json:"from"`
+	To      string `json:"to"`
 }
 
 var db = getConnection()
 
 func GetBookingsByUserId(userId uint64) ([]Models.Booking, error) {
-	rows, err := db.Query("select * from Bookings where user_id = ?", userId)
+	rows, err := db.Query("select * from bookings where user_id = $1", userId)
 
 	defer rows.Close()
 
@@ -38,7 +40,7 @@ func GetBookingsByUserId(userId uint64) ([]Models.Booking, error) {
 }
 
 func GetBookingsByPlaceId(placeId uint64) ([]Models.Booking, error) {
-	rows, err := db.Query("select * from Bookings where place_id = ?", placeId)
+	rows, err := db.Query("select * from bookings where place_id = $1", placeId)
 
 	defer rows.Close()
 
@@ -55,8 +57,23 @@ func GetBookingsByPlaceId(placeId uint64) ([]Models.Booking, error) {
 	return bookings, err
 }
 
-func CreateBooking() {
+func CreateBooking(d *CreateBookingDto) (err error) {
+	from, _ := time.Parse("RFC3339", d.From)
+	to, _ := time.Parse("RFC3339", d.To)
 
+	existingRows, _ := db.Query("select * from bookings where (time_to >= $1 and time_to <= $2) or (time_from <= $2 and time_from>= $1)", from.GoString(), to.GoString())
+
+	if existingRows != nil {
+		return errors.New("err_exists")
+	}
+
+	_, err = db.Query(
+		"insert into bookings (user_id, place_id, time_from, time_to) values (?, ?, ?, ?)",
+		d.UserId, d.PlaceId, d.From, d.To)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getConnection() *sql.DB {
